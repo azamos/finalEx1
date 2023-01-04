@@ -21,7 +21,7 @@ class AVLNode(object):
         self.right = None
         self.parent = None
         self.height = -1  # Balance factor
-        self.size = 0
+        self.size = -1
 
     def setAsVirtualNode(self):
         self.value = None
@@ -29,7 +29,7 @@ class AVLNode(object):
         self.right = None
         self.parent = None
         self.height = -1
-        self.size = 0
+        self.size = -1
 
     def initiateAsLeaf(self, val):
         leftVirtualSon = AVLNode(None)
@@ -40,7 +40,7 @@ class AVLNode(object):
         leftVirtualSon.setParent(self)
         rightVirtualSon.setParent(self)
         self.setHeight(0)
-        self.setSize(1)
+        self.setSize(0)
 
     def isLeaf(self):
         return self.getRight().isRealNode() is False and self.getLeft().isRealNode() is False
@@ -101,9 +101,10 @@ class AVLNode(object):
     """
 
     def getHeight(self):
-        if not self.isRealNode():
-            return -1
-        return 1 + max(self.getLeft().getHeight(),self.getRight().getHeight())
+        return self.height
+        # if not self.isRealNode():
+        #     return -1
+        # return 1 + max(self.getLeft().getHeight(),self.getRight().getHeight())
 
     """sets left child
 
@@ -157,7 +158,7 @@ class AVLNode(object):
     """
 
     def isRealNode(self):
-        return self.height == -1
+        return self.value is not None
 
 
 """
@@ -210,7 +211,37 @@ class AVLTreeList(object):
     """
 
     def insert(self, i, val):
-        return -1
+        newNode = AVLNode(val)
+        newNode.initiateAsLeaf(val)
+        fixFromNode = newNode
+        if i == 0:
+            self.firstListItem = newNode
+        if self.empty():
+            self.root = newNode
+            self.lastListItem = newNode
+            self.firstListItem = newNode
+        elif i == self.size:
+            x = self.last()
+            x.setRight(newNode)
+            newNode.setParent(x)
+            self.lastListItem = newNode
+        elif i < self.size:
+            currentListAtIndex = self.treeSelect(i)
+            if currentListAtIndex.getLeft().isRealNode() is False:
+                currentListAtIndex.setLeft(newNode)
+                newNode.setParent(currentListAtIndex)
+            else:
+                pred = self.predecessor(currentListAtIndex)
+                predRight = pred.getRight()
+                pred.setRight(newNode)
+                newNode.setParent(pred)
+                newNode.setRight(predRight)
+                predRight.setParent(newNode)
+        self.size += 1
+        #fixFromNode.setSize(fixFromNode.getSize()+1)
+        self.resizeAndReheight(fixFromNode)
+        return self.rebalanceTreeFromNode(fixFromNode)
+
 
     """deletes the i'th item in the list
 
@@ -308,7 +339,13 @@ class AVLTreeList(object):
     """
 
     def listToArray(self):
-        return None
+        arr = [""]*self.size
+        i = 0
+        x = self.first()
+        while i < self.size:
+            arr[i] = str(x.getValue())
+            i += 1
+        return arr
 
     """returns the size of the list 
 
@@ -372,20 +409,30 @@ class AVLTreeList(object):
     def getRoot(self):
         return self.root
 
+    """"
+        Auxiliary functions start here                                
+    """
+
     def subtreeSelect(self, node, k):
         r = node.getLeft().getSize() + 1
         if k == r:
             return node
         elif k < r:
-            return self.treeSelect(node.getLeft(), k)
+            return self.subtreeSelect(node.getLeft(), k)
         elif k > r:
-            return self.treeSelect(node.getRight(), k - r)
+            return self.subtreeSelect(node.getRight(), k - r)
 
     """"In place of retrieve(L,i)"""
     def treeSelect(self, k):
         if k > self.size or k < 0:
             return None
         return self.subtreeSelect(self.root, k)
+
+    def select(self, k):
+        x = self.first()
+        while x.getSize() < k:
+            x = x.getParent()
+        return self.treeSelect(k)
 
     """"In place of getRank(L,node)"""
     def treeRank(self,node):
@@ -473,6 +520,9 @@ class AVLTreeList(object):
         rightSonOfCriminal.left = criminalNode
         criminalNode.right = newRightOfCriminal
 
+        rightSonOfCriminal.setSize(criminalNode.getSize())
+        criminalNode.setSize(newRightSonOfProblemNode.getSize()+criminalNode.getLeft().getSize()+1)
+
     def rotateRight(self, criminalNode):
         leftSonOfCriminal = criminalNode.left
         newLeftSonOfProblemNode = leftSonOfCriminal.right
@@ -486,5 +536,31 @@ class AVLTreeList(object):
         newLeftOfCriminal = leftSonOfCriminal.right
         leftSonOfCriminal.right = criminalNode
         criminalNode.left = newLeftOfCriminal
+
+        leftSonOfCriminal.setSize(criminalNode.getSize())
+        criminalNode.setSize(newLeftSonOfProblemNode.getSize()+criminalNode.getRight().getSize()+1)
+
+    def resizeAndReheight(self,node):
+        self.updateHeightsInPath(node)
+        x = node
+        while x is not None:
+            x.setSize(x.getSize()+1)
+            x = x.getParent()
+
+    def updateHeightsInPath(self,node):
+        while node is not None:
+            node.setSize(1+max(node.getLeft().getHeight(),node.getRight().getHeight()))
+            node = node.getParent()
+
+""""
+    Testing grounds
+"""
+
+L = AVLTreeList()
+L.insert(0,5)
+L.insert(0,"sdfsdfdfs")
+L.insert(0,5.3)
+x = L.retrieve(2)
+print(x)
 
 
