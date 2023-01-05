@@ -1,9 +1,10 @@
 # username - amoszohar
 # id1      - 311402812
 # name1    - amos zohar
-# id2      - complete info
-# name2    - complete info
+# id2      - None
+# name2    - None
 
+from random import randrange
 
 """A class represnting a node in an AVL tree"""
 
@@ -21,7 +22,7 @@ class AVLNode(object):
         self.right = None
         self.parent = None
         self.height = -1  # Balance factor
-        self.size = -1
+        self.size = 0
 
     def setAsVirtualNode(self):
         self.value = None
@@ -29,7 +30,7 @@ class AVLNode(object):
         self.right = None
         self.parent = None
         self.height = -1
-        self.size = -1
+        self.size = 0
 
     def initiateAsLeaf(self, val):
         leftVirtualSon = AVLNode(None)
@@ -40,7 +41,7 @@ class AVLNode(object):
         leftVirtualSon.setParent(self)
         rightVirtualSon.setParent(self)
         self.setHeight(0)
-        self.setSize(0)
+        self.setSize(1)
 
     def isLeaf(self):
         return self.getRight().isRealNode() is False and self.getLeft().isRealNode() is False
@@ -65,6 +66,8 @@ class AVLNode(object):
     """
 
     def getLeft(self):
+        if self.left is None:
+            return None
         return self.left
 
     """returns the right child
@@ -74,6 +77,8 @@ class AVLNode(object):
     """
 
     def getRight(self):
+        if self.right is None:
+            return None
         return self.right
 
     """returns the parent 
@@ -83,6 +88,8 @@ class AVLNode(object):
     """
 
     def getParent(self):
+        if self.parent is None:
+            return None
         return self.parent
 
     """return the value
@@ -92,6 +99,8 @@ class AVLNode(object):
     """
 
     def getValue(self):
+        if self.isRealNode() is False:
+            return None
         return self.value
 
     """returns the height
@@ -102,9 +111,6 @@ class AVLNode(object):
 
     def getHeight(self):
         return self.height
-        # if not self.isRealNode():
-        #     return -1
-        # return 1 + max(self.getLeft().getHeight(),self.getRight().getHeight())
 
     """sets left child
 
@@ -220,7 +226,7 @@ class AVLTreeList(object):
             self.root = newNode
             self.lastListItem = newNode
             self.firstListItem = newNode
-        elif i == self.size:
+        elif i == self.size-1:
             x = self.last()
             x.setRight(newNode)
             newNode.setParent(x)
@@ -321,6 +327,8 @@ class AVLTreeList(object):
     """
 
     def first(self):
+        if self.firstListItem is None:
+            return None
         return self.firstListItem
 
     """returns the value of the last item in the list
@@ -339,12 +347,11 @@ class AVLTreeList(object):
     """
 
     def listToArray(self):
-        arr = [""]*self.size
-        i = 0
-        x = self.first()
-        while i < self.size:
-            arr[i] = str(x.getValue())
-            i += 1
+        arr = [""] * self.size
+        p = self.minimum
+        while (not p is None) and p.isRealNode():
+            arr[p.getRank()] = str(p.getValue())
+            p = self.successor(p)
         return arr
 
     """returns the size of the list 
@@ -363,7 +370,26 @@ class AVLTreeList(object):
     """
 
     def sort(self):
-        return None
+        sortedArr = self.quickSort(self.listToArray())
+        sortedAVLlist = AVLTreeList()
+        n = len(sortedArr)
+        for i in range(n):
+            sortedAVLlist.insert(sortedArr[i])
+
+    def quickSort(self, arr):
+        pIndex = randrange(0, arr.size())
+        pivot = arr[pIndex]
+        smallerElements = []
+        equalElemens = []
+        biggerElements = []
+        for info in arr:
+            if info < pivot:
+                smallerElements.append(info)
+            elif info == pivot:
+                equalElemens.append(info)
+            elif info > pivot:
+                biggerElements.append(info)
+        return self.quickSort(smallerElements) + equalElemens + self.quickSort(biggerElements)
 
     """permute the info values of the list 
 
@@ -372,7 +398,18 @@ class AVLTreeList(object):
     """
 
     def permutation(self):
-        return None
+        arr = self.listToArray()
+        n = len(arr)
+        permutatonTheta = AVLTreeList()
+        wasAllreadyRolled = [False] * n
+        i = 0
+        while i < n:
+            randRes = randrange(n)
+            if wasAllreadyRolled[randRes] == False:
+                permutatonTheta.insert(0, arr[randRes])
+                wasAllreadyRolled[randRes] = True
+                i += 1
+        return permutatonTheta
 
     """concatenates lst to self
 
@@ -383,7 +420,32 @@ class AVLTreeList(object):
     """
 
     def concat(self, lst):
-        return None
+        leftTree = self
+        rightTree = lst
+        x = rightTree.first()
+        pointerTree2 = x.getParent()
+        x.setParent(None)
+        virtSon = AVLNode(None)
+        virtSon.setAsVirtual()
+        pointerTree2.setLeft(virtSon)
+        delta = rightTree.size - leftTree.size
+        if delta > 0:
+            x.setLeft(leftTree.root)
+            while pointerTree2.getHeight() > leftTree.root.getHeight():
+                pointerTree2 = pointerTree2.getParent()
+            x.setParent(pointerTree2.getParent())
+            pointerTree2.getParent().setLeft(x)
+            pointerTree2.setParent(x)
+            self.rebalanceTree(x)
+        if delta == 0:
+            x.setLeft(leftTree.root)
+            x.setRight(rightTree.root)
+            leftTree.setParent(x)
+            rightTree.setParent(x)
+        if delta < 0:
+            x = 5
+
+        return abs(delta)
 
     """searches for a *value* in the list
 
@@ -397,7 +459,7 @@ class AVLTreeList(object):
         x = self.first()
         while x is not self.last():
             if x.getValue() == val:
-                return x.getRank()
+                return x.getRank() - 1
         return -1
 
     """returns the root of the tree representing the list
@@ -436,7 +498,7 @@ class AVLTreeList(object):
 
     """"In place of getRank(L,node)"""
     def treeRank(self,node):
-        counter = 0
+        counter = 1
         x = node
         while x is not None:
             if not x.isLeftSon():
@@ -548,7 +610,7 @@ class AVLTreeList(object):
             x = x.getParent()
 
     def updateHeightsInPath(self,node):
-        while node is not None:
+        while node is not self.root:
             node.setSize(1+max(node.getLeft().getHeight(),node.getRight().getHeight()))
             node = node.getParent()
 
@@ -556,11 +618,9 @@ class AVLTreeList(object):
     Testing grounds
 """
 
-L = AVLTreeList()
-L.insert(0,5)
-L.insert(0,"sdfsdfdfs")
-L.insert(0,5.3)
-x = L.retrieve(2)
-print(x)
+testList = AVLTreeList()
+testList.insert(0,"asgasgagg")
+print(testList.retrieve(0))
+
 
 
